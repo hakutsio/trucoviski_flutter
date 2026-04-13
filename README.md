@@ -27,4 +27,4 @@ O **Trucoviski** é um marcador de pontos de Truco intuitivo e temático, desenv
 
 2. **Clone o repositório:**
    ```bash
-   git clone [https://github.com/hakutsio/trucoviski.git](https://github.com/hakutsio/trucoviski.git)
+   git clone [https://github.com/hakutsio/trucoviski_flutter.git](https://github.com/hakutsio/trucoviski_flutter.git)
