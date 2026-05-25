@@ -1,0 +1,18 @@
+{"success": true, 
+    "deck_id": "nvrb1tfjrrf0", 
+    "cards": [{
+                "code": "9C", 
+                "image": "https://deckofcardsapi.com/static/img/9C.png", 
+                "images": {"svg": "https://deckofcardsapi.com/static/img/9C.svg", 
+                "png": "https://deckofcardsapi.com/static/img/9C.png"}, 
+                "value": "9", 
+                "suit": "CLUBS"
+                }, {
+                "code": "4H", 
+                "image": "https://deckofcardsapi.com/static/img/4H.png", 
+                "images": {"svg": "https://deckofcardsapi.com/static/img/4H.svg", 
+                "png": "https://deckofcardsapi.com/static/img/4H.png"}, 
+                "value": "4", 
+                "suit": "HEARTS"
+                }], 
+                "remaining": 50}
