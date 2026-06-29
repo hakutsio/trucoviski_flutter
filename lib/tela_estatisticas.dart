@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'supabase_service.dart';
 
 class TelaEstatisticas extends StatefulWidget {
   const TelaEstatisticas({super.key});
@@ -22,24 +23,51 @@ class _TelaEstatisticasState extends State<TelaEstatisticas> {
   }
 
   Future<void> _carregarDados() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> listaJogadores = prefs.getStringList('listaJogadores') ?? [];
+    // Tenta carregar do Supabase primeiro
+    try {
+      final dadosSupabase = await SupabaseService.buscarEstatisticas();
+      final totalPartidas = await SupabaseService.buscarPartidasFinalizadas();
 
-    Map<String, int> mapaTemporario = {};
-    for (String jogador in listaJogadores) {
-      int vitorias = prefs.getInt('vitorias_$jogador') ?? 0;
-      mapaTemporario[jogador] = vitorias;
+      Map<String, int> mapaTemporario = {};
+      for (var item in dadosSupabase) {
+        mapaTemporario[item['nome']] = item['vitorias'];
+      }
+
+      setState(() {
+        partidasFinalizadas = totalPartidas;
+        rankingVitoretas = mapaTemporario;
+      });
+    } catch (e) {
+      // Fallback para SharedPreferences se o Supabase falhar (ex: sem internet ou sem chaves)
+      final prefs = await SharedPreferences.getInstance();
+      List<String> listaJogadores = prefs.getStringList('listaJogadores') ?? [];
+
+      Map<String, int> mapaTemporario = {};
+      for (String jogador in listaJogadores) {
+        int vitorias = prefs.getInt('vitorias_$jogador') ?? 0;
+        mapaTemporario[jogador] = vitorias;
+      }
+
+      setState(() {
+        partidasFinalizadas = prefs.getInt('partidasFinalizadas') ?? 0;
+        rankingVitoretas = mapaTemporario;
+      });
     }
-
-    setState(() {
-      partidasFinalizadas = prefs.getInt('partidasFinalizadas') ?? 0;
-      rankingVitoretas = mapaTemporario;
-    });
   }
 
   Future<void> _limparHistorico() async {
+    // Limpa local
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+
+    // Limpa Supabase
+    try {
+      await SupabaseService.limparEstatisticas();
+      await SupabaseService.salvarPartidasFinalizadas(0);
+    } catch (e) {
+      debugPrint('Erro ao limpar Supabase: $e');
+    }
+
     _carregarDados();
   }
 

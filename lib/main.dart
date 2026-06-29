@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'tela_estatisticas.dart';
+import 'tela_inicial.dart';
+import 'supabase_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
+  await SupabaseService.initialize();
+
   runApp(const MyApp());
 }
 
@@ -22,7 +31,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color.fromARGB(255, 52, 69, 168),
         ),
       ),
-      home: const MyHomePage(title: 'Trucoviski'),
+      home: const TelaInicial(),
     );
   }
 }
@@ -424,30 +433,36 @@ class _TelaDoJogoState extends State<TelaDoJogo> {
   }
 
   Future<void> _computarFimDePartida(String vencedor) async {
+    // Mantendo SharedPreferences para funcionamento offline/local como fallback
     final prefs = await SharedPreferences.getInstance();
 
-    int finalizadas = prefs.getInt('partidasFinalizadas') ?? 0;
-    await prefs.setInt('partidasFinalizadas', finalizadas + 1);
+    int finalizadas = (prefs.getInt('partidasFinalizadas') ?? 0) + 1;
+    await prefs.setInt('partidasFinalizadas', finalizadas);
+
+    int vitoriasAtuais = (prefs.getInt('vitorias_$vencedor') ?? 0) + 1;
+    await prefs.setInt('vitorias_$vencedor', vitoriasAtuais);
 
     List<String> listaJogadores = prefs.getStringList('listaJogadores') ?? [];
-
-    if (!listaJogadores.contains(widget.nomeJogador1)) {
+    if (!listaJogadores.contains(widget.nomeJogador1))
       listaJogadores.add(widget.nomeJogador1);
-    }
-    if (!listaJogadores.contains(widget.nomeJogador2)) {
+    if (!listaJogadores.contains(widget.nomeJogador2))
       listaJogadores.add(widget.nomeJogador2);
-    }
     await prefs.setStringList('listaJogadores', listaJogadores);
 
-    String perdedor = vencedor == widget.nomeJogador1
-        ? widget.nomeJogador2
-        : widget.nomeJogador1;
-    if (prefs.getInt('vitorias_$perdedor') == null) {
-      await prefs.setInt('vitorias_$perdedor', 0);
-    }
+    // Integração Supabase
+    try {
+      await SupabaseService.salvarPartidasFinalizadas(finalizadas);
+      await SupabaseService.salvarEstatistica(vencedor, vitoriasAtuais);
 
-    int vitoriasAtuais = prefs.getInt('vitorias_$vencedor') ?? 0;
-    await prefs.setInt('vitorias_$vencedor', vitoriasAtuais + 1);
+      // Garante que o perdedor também exista no banco (CRUD simples)
+      String perdedor = vencedor == widget.nomeJogador1
+          ? widget.nomeJogador2
+          : widget.nomeJogador1;
+      int vitoriasPerdedor = prefs.getInt('vitorias_$perdedor') ?? 0;
+      await SupabaseService.salvarEstatistica(perdedor, vitoriasPerdedor);
+    } catch (e) {
+      debugPrint('Erro Supabase: $e');
+    }
   }
 
   void _mostrarModalVencedor(String nomeVencedor) {
