@@ -11,9 +11,6 @@ class SupabaseService {
 
   static final SupabaseClient client = Supabase.instance.client;
 
-  // Operações para Estatísticas (CRUD Simples)
-
-  // Create / Update (Upsert)
   static Future<void> salvarEstatistica(String nome, int vitorias) async {
     await client.from('estatisticas').upsert({
       'nome': nome,
